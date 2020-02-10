@@ -293,6 +293,31 @@ WHERE object_id = @id
   AND actual_end_time > @start
 -- STOP adding add all related downtime end times
 
+-- FAKE DOWNTIMES HIER!
+
+UNION SELECT
+    GREATEST(start_time, @start) AS state_time,
+    'dt_start' AS type,
+    NULL AS state,
+    NULL AS last_state
+FROM icinga_reporting_fake_downtime
+WHERE object_id = @id
+  AND start_time < @end
+  AND end_time > @start
+-- STOP adding add all related downtime start times
+
+-- START adding add all related downtime end times
+UNION SELECT
+    LEAST(end_time, @end) AS state_time,
+    'dt_end' AS type,
+    NULL AS state,
+    NULL AS last_state
+FROM icinga_reporting_fake_downtime
+WHERE object_id = @id
+  AND start_time < @end
+  AND end_time > @start
+-- STOP adding add all related downtime end times
+
 -- START fetching SLA time period start times ---
 UNION ALL
 SELECT
