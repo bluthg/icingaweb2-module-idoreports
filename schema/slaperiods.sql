@@ -16,11 +16,4 @@ CREATE TABLE icinga_outofsla_periods (
   UNIQUE KEY tp_end (timeperiod_object_id, end_time)
 ) ENGINE InnoDB;
 
-DROP TABLE IF EXISTS icinga_reporting_fake_downtime;
-CREATE TABLE icinga_reporting_fake_downtime (
-    id int(10) unsigned NOT NULL AUTO_INCREMENT,
-    object_id BIGINT(20) UNSIGNED NOT NULL,
-    start_time timestamp NOT NULL,
-    end_time timestamp NULL DEFAULT NULL,
-    PRIMARY KEY (id)
-) ENGINE InnoDB;
+
