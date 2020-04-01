@@ -9,10 +9,6 @@ CREATE OR REPLACE FUNCTION idoreports_get_sla_ok_percent(
 RETURNS float
 LANGUAGE SQL
 AS $$
---\set id 371
---\set starttime '2019-02-19 00:00:00'
---\set endtime '2019-02-20 10:00:00'
---\set sla_id null 
 
 WITH crit AS (
 	SELECT CASE objecttype_id
@@ -64,7 +60,6 @@ all_hard_events AS (
 	AND 	state_time <= endtime
 	AND 	state_type = 1
 ),
-
 after AS (
 	-- the "younger" of the current host/service state and the first recorded event
 	(SELECT state > crit_value AS down
@@ -112,30 +107,21 @@ after AS (
 )
 , downtimes AS (
 	SELECT tsrange(
-			--GREATEST(actual_start_time, starttime)
-			--, LEAST(actual_end_time, endtime)
 			actual_start_time
 		      , actual_end_time
 		) AS downtime
 	FROM icinga_downtimehistory
         WHERE object_id = id
-	--          AND actual_start_time <= endtime
---          AND COALESCE(actual_end_time,starttime) >= starttime
 
 	UNION ALL
 
 	SELECT tsrange(
-			--GREATEST(start_time, starttime)
-			--, LEAST(end_time, endtime)
 			start_time
 		      , end_time
 		) AS downtime
 	FROM icinga_outofsla_periods
         WHERE timeperiod_object_id = sla_id
-
 )
-
---SELECT * FROM allevents;
 , enriched AS (
 	SELECT down
 	,tsrange(state_time, COALESCE(lead(state_time) OVER w, endtime),'(]') AS zeitraum
@@ -149,14 +135,12 @@ after AS (
 		FROM allevents,crit
 		WINDOW w AS (ORDER BY state_time)
 	) alle
-	--WHERE down != next_down OR down != prev_down
 	WINDOW w AS (ORDER BY state_time)
 ) 
 , relevant AS (
     SELECT * FROM enriched 
     WHERE zeitraum && tsrange(starttime,endtime,'(]')
-) --SELECT * FROM relevant;
-
+)
 , relevant_down AS (
 	SELECT *
 		,zeitraum * downtime AS covered 
@@ -174,9 +158,6 @@ after AS (
 		, upper(not_covered) - lower(not_covered) AS dauer
 	FROM relevant_down
 )
-
---select * from effective_downtimes;
-
 , final_result AS (
 	SELECT sum(dauer) AS total_downtime
 		, endtime - starttime AS considered
@@ -185,7 +166,7 @@ after AS (
 	FROM effective_downtimes
 )
 
-SELECT -- *,
+SELECT
  100.0 - down_secs / considered_secs * 100.0 AS availability
 FROM final_result
 ;
